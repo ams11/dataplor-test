@@ -28,6 +28,12 @@ class NodesController < ApplicationController
   end
 
   def bird_ids_from_nodes
-    nodes = Node.where(id: params[:node_ids])
+    nodes = Node.includes(:edge).where(id: params[:node_ids]).index_by(&:root_node_id)
+    node_ids = []
+    nodes.each do |_, nodes|
+      min_depth_index = nodes.pluck(:depth).min-1
+      node_ids << nodes.first.edge.node_ids.slice(min_depth_index..)
+    end
+    Bird.where(node_id: node_ids)
   end
 end

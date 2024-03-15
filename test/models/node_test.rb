@@ -40,6 +40,33 @@ class NodeTest < ActiveSupport::TestCase
 
       assert_equal expected_result, result
     end
+
+    it "can find lowest common ancestor for edge nodes" do
+      edge_nodes = Node.where(id: Node.pluck(:edge_node_id).uniq)
+      node1, node2 = edge_nodes.sample(2)
+      result = node1.lowest_ancestor(other_node: node2)
+      assert_equal result[:root_id], Node.roots.first.id
+      assert result[:lowest_common_ancestor]
+      assert result[:depth]
+    end
+
+    it "returns the node if comparing to itself" do
+      root_node = Node.roots.first
+      node = root_node.children.first
+
+      result = node.lowest_ancestor(other_node: node)
+      expected_result = { root_id: root_node.id, lowest_common_ancestor: node.id, depth: node.depth }
+      assert_equal expected_result, result
+    end
+
+    it "returns nil if the there is no common node" do
+      node = Node.roots.first.children.first
+      new_node = Node.create
+
+      result = node.lowest_ancestor(other_node: new_node)
+      expected_result = { root_id: nil, lowest_common_ancestor: nil, depth: nil }
+      assert_equal expected_result, result
+    end
   end
 
   describe "#index_nodes!" do

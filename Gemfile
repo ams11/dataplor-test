@@ -73,5 +73,6 @@ group :test do
   gem "selenium-webdriver"
   gem 'shoulda-context', '~> 2.0'
   gem 'database_cleaner-active_record'
+  gem 'minitest-rails'
 
 end

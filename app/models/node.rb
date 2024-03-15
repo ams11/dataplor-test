@@ -6,20 +6,20 @@ class Node < ApplicationRecord
   scope :roots, -> { where(parent_node_id: nil) }
 
   def lowest_ancestor(other_node:)
-    return { root_id: root_node.id, lowest_common_ancestor: self, depth: depth } if other_node == self
-    return { root_id: nil, lowest_common_ancestor: nil, depth: nil } unless root_node == other_node.root_node
+    return { root_id: root_node_id, lowest_common_ancestor: id, depth: depth } if other_node == self
+    return { root_id: nil, lowest_common_ancestor: nil, depth: nil } unless root_node_id == other_node.root_node_id
 
-    node_ids = edge.node_ids.slice(0..edge.node_ids.index(id))
-    other_node_ids = other_node.edge.node_ids.slice(0..other_node.edge.node_ids.index(other_node.id))
+    node_ids = edge.node_ids.slice(0..depth-1)
+    other_node_ids = other_node.edge.node_ids.slice(0..other_node.depth-1)
     common_ids = node_ids & other_node_ids
     ancestor = Node.find(common_ids.last)
     { root_id: common_ids.first, lowest_common_ancestor: ancestor.id, depth: ancestor.depth }
   end
 
-  def root_node
+  def root_node_id
     return nil if edge.nil? || edge.node_ids.blank?
 
-    Node.find(edge.node_ids.first)
+    edge.node_ids.first
   end
 
   def self.index_nodes!

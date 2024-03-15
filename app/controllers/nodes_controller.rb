@@ -2,7 +2,11 @@ class NodesController < ApplicationController
   before_action :load_nodes, only: :common_ancestor
 
   def common_ancestor
-  render json: @node_a.lowest_ancestor(other_node: @node_b), status: :ok
+    render json: @node_a.lowest_ancestor(other_node: @node_b), status: :ok
+  end
+
+  def birds
+    render json: bird_ids_from_nodes, status: :ok
   end
 
   private
@@ -21,5 +25,9 @@ class NodesController < ApplicationController
 
   def load_node(param_name: :a)
     Node.find_by(id: params[param_name])
+  end
+
+  def bird_ids_from_nodes
+    nodes = Node.where(id: params[:node_ids])
   end
 end

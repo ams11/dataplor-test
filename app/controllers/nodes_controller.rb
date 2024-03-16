@@ -6,7 +6,7 @@ class NodesController < ApplicationController
   end
 
   def birds
-    render json: bird_ids_from_nodes, status: :ok
+    render json: { bird_ids: bird_ids_from_nodes }, status: :ok
   end
 
   private
@@ -28,12 +28,19 @@ class NodesController < ApplicationController
   end
 
   def bird_ids_from_nodes
-    nodes = Node.includes(:edge).where(id: params[:node_ids]).index_by(&:root_node_id)
-    node_ids = []
-    nodes.each do |_, nodes|
-      min_depth_index = nodes.pluck(:depth).min-1
-      node_ids << nodes.first.edge.node_ids.slice(min_depth_index..)
-    end
-    Bird.where(node_id: node_ids)
+    edge_nodes = Node.where(id: Node.pluck(:edge_node_id).uniq)
+    node_ids = edge_nodes.map do |edge_node|
+      selected_node_ids = edge_node.node_ids & node_ids_from_params
+      if selected_node_ids.any?
+        min_depth = Node.where(id: selected_node_ids).pluck(:depth).min - 1
+        edge_node.node_ids[min_depth..]
+      end
+    end.flatten.uniq
+
+    Bird.where(node_id: node_ids).pluck(:id)
+  end
+
+  def node_ids_from_params
+    params[:node_ids].map(&:to_i)
   end
 end

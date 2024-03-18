@@ -28,8 +28,7 @@ class NodesController < ApplicationController
   end
 
   def bird_ids_from_nodes
-    edge_nodes = Node.where(id: Node.pluck(:edge_node_id).uniq)
-    node_ids = edge_nodes.map do |edge_node|
+    node_ids = Node.edge.map do |edge_node|
       selected_node_ids = edge_node.node_ids & node_ids_from_params
       if selected_node_ids.any?
         min_depth = Node.where(id: selected_node_ids).pluck(:depth).min - 1

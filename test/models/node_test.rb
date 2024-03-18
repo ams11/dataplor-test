@@ -42,8 +42,7 @@ class NodeTest < ActiveSupport::TestCase
     end
 
     it "can find lowest common ancestor for edge nodes" do
-      edge_nodes = Node.where(id: Node.pluck(:edge_node_id).uniq)
-      node1, node2 = edge_nodes.sample(2)
+      node1, node2 = Node.edge.sample(2)
       result = node1.lowest_ancestor(other_node: node2)
       assert_equal result[:root_id], Node.roots.first.id
       assert result[:lowest_common_ancestor]
@@ -79,8 +78,7 @@ class NodeTest < ActiveSupport::TestCase
       Node.index_nodes!
       assert_empty Node.where(edge_node_id: nil)
 
-      edge_nodes = Node.where(id: Node.pluck(:edge_node_id).uniq)
-      edge_nodes.each do |edge_node|
+      Node.edge.each do |edge_node|
         cached_edge_node = edge_node
         node_ids = [edge_node.id]
         while edge_node.parent

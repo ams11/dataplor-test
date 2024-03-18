@@ -4,6 +4,7 @@ class Node < ApplicationRecord
   belongs_to :edge, class_name: Node.to_s, optional: true, foreign_key: :edge_node_id
 
   scope :roots, -> { where(parent_node_id: nil) }
+  scope :edge, -> { where(id: Node.pluck(:edge_node_id).uniq) }
 
   def lowest_ancestor(other_node:)
     return { root_id: root_node_id, lowest_common_ancestor: id, depth: depth } if other_node == self

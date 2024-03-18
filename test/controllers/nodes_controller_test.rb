@@ -62,4 +62,79 @@ class NodesControllerTest < ActionDispatch::IntegrationTest
       assert_equal expected_result, result
     end
   end
+
+  describe "/birds" do
+    it "returns empty list if no param passed in" do
+      get birds_url, params: { }
+
+      assert_response :success
+      result = JSON.parse response.body
+      expected_result = { "bird_ids" => [] }
+      assert_equal expected_result, result
+    end
+
+    it "returns empty list if no node id's passed in" do
+      get birds_url, params: { node_ids: [] }
+
+      assert_response :success
+      result = JSON.parse response.body
+      expected_result = { "bird_ids" => [] }
+      assert_equal expected_result, result
+    end
+
+    it "returns all the bird id's for the given nodes" do
+      root_node = Node.create
+      child1 = Node.create(parent_node_id: root_node.id)
+      child2 = Node.create(parent_node_id: root_node.id)
+      child3 = Node.create(parent_node_id: root_node.id)
+      [child1, child2].each do |child_node|
+        5.times do
+          node = Node.create(parent_node_id: child_node.id)
+          rand(5).times do
+            node = Node.create(parent_node_id: node.id)
+          end
+        end
+      end
+      bird1 = Bird.create(node_id: child1.id )
+      bird2 = Bird.create(node_id: child2.id )
+      bird3 = Bird.create(node_id: child3.id )
+      bird1_1 = Bird.create(node_id: child1.children.last.id )
+      bird1_1_1 = Bird.create(node_id: child1.children.first.children.last.id )
+      Node.index_nodes!
+
+      get birds_url, params: { node_ids: [child1.id, child2.id] }
+
+      assert_response :success
+      result = JSON.parse response.body
+      expected_bird_ids = [bird1.id, bird2.id, bird1_1.id, bird1_1_1.id]
+      assert_same_elements expected_bird_ids, result["bird_ids"]
+    end
+
+    it "returns no id's if no birds are attached to nodes in params" do
+      root_node = Node.create
+      child1 = Node.create(parent_node_id: root_node.id)
+      child2 = Node.create(parent_node_id: root_node.id)
+      child3 = Node.create(parent_node_id: root_node.id)
+      [child1, child2].each do |child_node|
+        5.times do
+          node = Node.create(parent_node_id: child_node.id)
+          rand(5).times do
+            node = Node.create(parent_node_id: node.id)
+          end
+        end
+      end
+      Bird.create(node_id: child1.id )
+      Bird.create(node_id: child2.id )
+      Bird.create(node_id: child1.children.last.id )
+      Bird.create(node_id: child1.children.first.children.last.id )
+      Node.index_nodes!
+
+      get birds_url, params: { node_ids: [child3.id] }
+
+      assert_response :success
+      result = JSON.parse response.body
+      expected_result = { "bird_ids" => [] }
+      assert_equal expected_result, result
+    end
+  end
 end

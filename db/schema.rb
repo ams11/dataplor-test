@@ -10,7 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_03_10_220813) do
+ActiveRecord::Schema[7.0].define(version: 2024_03_15_224052) do
+  create_table "birds", force: :cascade do |t|
+    t.integer "node_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["node_id"], name: "index_birds_on_node_id"
+  end
+
   create_table "nodes", force: :cascade do |t|
     t.integer "parent_node_id"
     t.integer "edge_node_id"

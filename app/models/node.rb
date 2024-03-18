@@ -10,17 +10,31 @@ class Node < ApplicationRecord
     return { root_id: root_node_id, lowest_common_ancestor: id, depth: depth } if other_node == self
     return { root_id: nil, lowest_common_ancestor: nil, depth: nil } unless root_node_id == other_node.root_node_id
 
-    node_ids = edge.node_ids.slice(0..depth-1)
-    other_node_ids = other_node.edge.node_ids.slice(0..other_node.depth-1)
+    node_ids = edge.node_id_list.slice(0..depth-1)
+    other_node_ids = other_node.edge.node_id_list.slice(0..other_node.depth-1)
     common_ids = node_ids & other_node_ids
     ancestor = Node.find(common_ids.last)
     { root_id: common_ids.first, lowest_common_ancestor: ancestor.id, depth: ancestor.depth }
   end
 
   def root_node_id
-    return nil if edge.nil? || edge.node_ids.blank?
+    return nil if edge.nil? || edge.node_id_list.blank?
 
-    edge.node_ids.first
+    edge.node_id_list.first
+  end
+
+  def node_id_list
+    return @node_id_list if defined? @node_id_list
+
+    @node_id_list = edge.node_ids
+    root_node = Node.find(@node_id_list.first)
+    while root_node.parent_node_id
+      parent_node = Node.find(root_node.parent_node_id)
+      @node_id_list = @node_id_list.prepend(parent_node.node_ids).flatten
+      root_node = Node.find(parent_node.node_ids.first)
+    end
+
+    @node_id_list
   end
 
   def self.index_nodes!

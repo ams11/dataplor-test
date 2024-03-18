@@ -37,8 +37,29 @@ class Node < ApplicationRecord
     @node_id_list
   end
 
-  def self.index_nodes!
-    Node.roots.includes(:children).each do |node|
+  # index all the Node's from the very top root Node's
+  def self.index_nodes!(instrument_time: false)
+    start_time = Time.now if instrument_time
+
+    index_root_nodes!(Node.roots.includes(:children))
+
+    if instrument_time
+      time_diff = Time.now - start_time
+      puts "Elapsed time for #index_node!: #{time_diff} seconds"
+    end
+  end
+
+  def self.index_new_nodes!
+    # if new Nodes have been added to our, then the current edge Node's
+    # will now have children, so we can treat each edge Node as a root and
+    # index all the children of each edge.
+    # #node_id_list is already capable of combining node_id lists when an edge
+    # Node has children.
+    index_root_nodes!(Node.edge.includes(:children))
+  end
+
+  def self.index_root_nodes!(root_nodes)
+    root_nodes.each do |node|
       head_nodes = { [] => [node] }
       while head_nodes.any?
         node_ids, heads = head_nodes.shift

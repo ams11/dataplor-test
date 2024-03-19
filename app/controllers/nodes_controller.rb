@@ -12,7 +12,7 @@ class NodesController < ApplicationController
   private
 
   def load_nodes
-    @node_a =  load_node
+    @node_a = load_node
     if @node_a.nil?
       render json: { error: "Node not found" }, status: 404 and return
     end

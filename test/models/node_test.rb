@@ -28,7 +28,7 @@ class NodeTest < ActiveSupport::TestCase
 
   describe "#lowest_ancestor" do
     before do
-      NodeTest.create_sample_nodes
+      NodeTest.create_sample_nodes(node_count: 50)
       Node.index_nodes!
     end
 
@@ -66,11 +66,24 @@ class NodeTest < ActiveSupport::TestCase
       expected_result = { root_id: nil, lowest_common_ancestor: nil, depth: nil }
       assert_equal expected_result, result
     end
+
+    it "can include nodes that were just added and have only had a partial index" do
+      parent_node1, parent_node2 = Node.edge.sample(2)
+      new_node1 = Node.create(parent_node_id: parent_node1.id)
+      new_node2 = Node.create(parent_node_id: new_node1.id)
+      new_node3 = Node.create(parent_node_id: parent_node2.id)
+      Node.index_new_nodes!  # index the new Nodes, without doing a full re-index
+
+      result = new_node2.reload.lowest_ancestor(other_node: new_node3.reload)
+      assert result[:root_id]
+      assert result[:lowest_common_ancestor]
+      assert result[:depth]
+    end
   end
 
   describe "#index_nodes!" do
     before do
-      NodeTest.create_sample_nodes
+      NodeTest.create_sample_nodes(node_count: 250)
     end
 
     it "creates indices for all the Nodes" do
@@ -93,17 +106,25 @@ class NodeTest < ActiveSupport::TestCase
     end
   end
 
-  def self.create_sample_nodes(breadth: 5, depth: 5)
-    root_node = Node.create
-    child1 = Node.create(parent_node_id: root_node.id)
-    child2 = Node.create(parent_node_id: root_node.id)
-    [child1, child2].each do |child_node|
-      breadth.times do
-        node = Node.create(parent_node_id: child_node.id)
-        rand(depth).times do
-          node = Node.create(parent_node_id: node.id)
-        end
-      end
+  describe "when working with a large dataset" do
+    before do
+      NodeTest.create_sample_nodes
+    end
+
+    it "succeeds" do
+      assert_empty Node.where.not(edge_node_id: nil)
+      Node.index_nodes!
+      assert_empty Node.where(edge_node_id: nil)
+    end
+  end
+
+  def self.create_sample_nodes(node_count: 1_000, root_node: Node.create, verbose: false)
+    child_count = rand(1..5)
+    puts "node count: #{node_count}, child count: #{child_count}, next node count: #{node_count / child_count}" if verbose
+    node_count = node_count / child_count
+    child_count.times do
+      node = Node.create(parent_node_id: root_node.id)
+      create_sample_nodes(node_count: node_count, root_node: node) if node_count > child_count
     end
   end
 end

@@ -10,21 +10,56 @@ class Node < ApplicationRecord
     return { root_id: root_node_id, lowest_common_ancestor: id, depth: depth } if other_node == self
     return { root_id: nil, lowest_common_ancestor: nil, depth: nil } unless root_node_id == other_node.root_node_id
 
-    node_ids = edge.node_ids.slice(0..depth-1)
-    other_node_ids = other_node.edge.node_ids.slice(0..other_node.depth-1)
+    node_ids = edge.node_id_list.slice(0..depth-1)
+    other_node_ids = other_node.edge.node_id_list.slice(0..other_node.depth-1)
     common_ids = node_ids & other_node_ids
     ancestor = Node.find(common_ids.last)
     { root_id: common_ids.first, lowest_common_ancestor: ancestor.id, depth: ancestor.depth }
   end
 
   def root_node_id
-    return nil if edge.nil? || edge.node_ids.blank?
+    return nil if edge.nil? || edge.node_id_list.blank?
 
-    edge.node_ids.first
+    edge.node_id_list.first
   end
 
-  def self.index_nodes!
-    Node.roots.includes(:children).each do |node|
+  def node_id_list
+    return @node_id_list if defined? @node_id_list
+
+    @node_id_list = edge.node_ids
+    while true
+      parent_node = Node.find(@node_id_list.first)
+      break if parent_node.node_ids.blank?
+
+      @node_id_list = @node_id_list.prepend(parent_node.node_ids).flatten
+    end
+
+    @node_id_list
+  end
+
+  # index all the Node's from the very top root Node's
+  def self.index_nodes!(instrument_time: false)
+    start_time = Time.now if instrument_time
+
+    index_root_nodes!(Node.roots.includes(:children))
+
+    if instrument_time
+      time_diff = Time.now - start_time
+      puts "Elapsed time for #index_node!: #{time_diff} seconds"
+    end
+  end
+
+  def self.index_new_nodes!
+    # if new Nodes have been added to our, then the current edge Node's
+    # will now have children, so we can treat each edge Node as a root and
+    # index all the children of each edge.
+    # #node_id_list is already capable of combining node_id lists when an edge
+    # Node has children.
+    index_root_nodes!(Node.edge.includes(:children))
+  end
+
+  def self.index_root_nodes!(root_nodes)
+    root_nodes.each do |node|
       head_nodes = { [] => [node] }
       while head_nodes.any?
         node_ids, heads = head_nodes.shift

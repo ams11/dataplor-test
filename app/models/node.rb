@@ -27,6 +27,8 @@ class Node < ApplicationRecord
     return @node_id_list if defined? @node_id_list
 
     @node_id_list = edge.node_ids
+    return @node_id_list if @node_id_list == [id]   # if the whole list is just the current Node
+
     while true
       parent_node = Node.find(@node_id_list.first)
       break if parent_node.node_ids.blank?
@@ -50,12 +52,16 @@ class Node < ApplicationRecord
   end
 
   def self.index_new_nodes!
-    # if new Nodes have been added to our, then the current edge Node's
+    # if new Nodes have been added to our data set, then the current edge Node's
     # will now have children, so we can treat each edge Node as a root and
     # index all the children of each edge.
     # #node_id_list is already capable of combining node_id lists when an edge
     # Node has children.
+    #
+    # We also need to handle the case of new root nodes being created - these will be
+    # root nodes, with no edge_node_id set.
     index_root_nodes!(Node.edge.includes(:children))
+    index_root_nodes!(Node.roots.where(edge_node_id: nil).includes(:children))
   end
 
   def self.index_root_nodes!(root_nodes)

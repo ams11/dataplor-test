@@ -42,7 +42,7 @@ class NodesControllerTest < ActionDispatch::IntegrationTest
       node2 = Node.create
       Node.index_nodes!
 
-      get common_ancestor_nodes_url, params: { a: node1.id, b: node2.id}
+      get common_ancestor_nodes_url, params: { a: node1.id, b: node2.id }
       assert_response :success
       expected_result = { "root_id" => nil, "lowest_common_ancestor" => nil, "depth" => nil }
       result = JSON.parse response.body

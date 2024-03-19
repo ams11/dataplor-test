@@ -27,11 +27,11 @@ class Node < ApplicationRecord
     return @node_id_list if defined? @node_id_list
 
     @node_id_list = edge.node_ids
-    root_node = Node.find(@node_id_list.first)
-    while root_node.parent_node_id
-      parent_node = Node.find(root_node.parent_node_id)
+    while true
+      parent_node = Node.find(@node_id_list.first)
+      break if parent_node.node_ids.blank?
+
       @node_id_list = @node_id_list.prepend(parent_node.node_ids).flatten
-      root_node = Node.find(parent_node.node_ids.first)
     end
 
     @node_id_list

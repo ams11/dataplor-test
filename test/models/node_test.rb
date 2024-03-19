@@ -66,6 +66,19 @@ class NodeTest < ActiveSupport::TestCase
       expected_result = { root_id: nil, lowest_common_ancestor: nil, depth: nil }
       assert_equal expected_result, result
     end
+
+    it "can include nodes that were just added and have only had a partial index" do
+      parent_node1, parent_node2 = Node.edge.sample(2)
+      new_node1 = Node.create(parent_node_id: parent_node1.id)
+      new_node2 = Node.create(parent_node_id: new_node1.id)
+      new_node3 = Node.create(parent_node_id: parent_node2.id)
+      Node.index_new_nodes!  # index the new Nodes, without doing a full re-index
+
+      result = new_node2.reload.lowest_ancestor(other_node: new_node3.reload)
+      assert result[:root_id]
+      assert result[:lowest_common_ancestor]
+      assert result[:depth]
+    end
   end
 
   describe "#index_nodes!" do
